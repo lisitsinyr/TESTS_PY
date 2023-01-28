@@ -1,4 +1,5 @@
-# Template_main_01.py
+#=======================================================================================
+# TEST_ORACLE_oracledb.py
 #=======================================================================================
 
 #------------------------------------------
@@ -39,11 +40,78 @@ if args.P1 != '':
 #------------------------------------------
 
 #-------------------------------------------------------------------------------
-# Template (A1: str, A2: str): -> str
+# CreateConnectio ():
 #-------------------------------------------------------------------------------
-def Template (A1: str, A2: str):
+def CreateConnection ():
+    global connection
+    global dbCursor
 #beginfunction
-    pass
+    print ("CreateConnection ...")
+    connection = oracledb.connect(user='ot',
+                              password='OT',
+                              dsn='localhost/orcl')
+    print ("Successfully connected to Oracle Database")
+    dbCursor = connection.cursor ()
+#endfunction
+
+#-------------------------------------------------------------------------------
+# CREATE_Table ():
+#-------------------------------------------------------------------------------
+def CREATE_Table ():
+#beginfunction
+    print ("create table todoitem ...")
+    qCreateTable = """
+        create table todoitem (
+            id number generated always as identity,
+            description varchar2(4000),
+            creation_ts timestamp with time zone default current_timestamp,
+            done number(1,0),
+            primary key (id))"""
+    #print (qCreateTable)
+    dbCursor.execute (qCreateTable)
+#endfunction
+
+#-------------------------------------------------------------------------------
+# DROP_Table ():
+#-------------------------------------------------------------------------------
+def DROP_Table ():
+#beginfunction
+    print ("drop table todoitem ...")
+    qDropTable = """
+        begin
+            execute immediate 'drop table todoitem';
+            exception when others then if sqlcode <> -942 then raise; end if;
+        end;"""
+    #print (qDropTable)
+    dbCursor.execute (qDropTable)
+#endfunction
+
+#-------------------------------------------------------------------------------
+# INSERT_Table ():
+#-------------------------------------------------------------------------------
+def INSERT_Table ():
+#beginfunction
+    print ("INSERT_Table ...")
+    rows = [("Task 1", 0),
+        ("Task 2", 0),
+        ("Task 3", 1),
+        ("Task 4", 0),
+        ("Task 5", 1)]
+    dbCursor.executemany ("insert into todoitem (description, done) values(:1, :2)", rows)
+    print (dbCursor.rowcount, "Rows Inserted")
+    connection.commit ()
+#endfunction
+
+#-------------------------------------------------------------------------------
+# SELECT_Table ():
+#-------------------------------------------------------------------------------
+def SELECT_Table ():
+#beginfunction
+    for row in dbCursor.execute ('select description, done from todoitem'):
+        if row [1]:
+            print (row [0], "is done")
+        else:
+            print (row [0], "is NOT done")
 #endfunction
 
 #------------------------------------------
@@ -51,53 +119,11 @@ def Template (A1: str, A2: str):
 #------------------------------------------
 def main():
 #beginfunction
-    # Password
-    #pw = getpass.getpass ("Enter password (ot): ")
-
-    connection = oracledb.connect(user='ot',
-                              password='OT',
-                              dsn='localhost/orcl')
-
-    print ("Successfully connected to Oracle Database")
-    cursor = connection.cursor ()
-
-    # Drop table
-    DropTable = """
-        begin
-            execute immediate 'drop table todoitem';
-            exception when others then if sqlcode <> -942 then raise; end if;
-        end;"""
-    print (DropTable)
-    cursor.execute (DropTable)
-
-    # Create table
-    CreateTable = """
-        create table todoitem (
-            id number generated always as identity,
-            description varchar2(4000),
-            creation_ts timestamp with time zone default current_timestamp,
-            done number(1,0),
-            primary key (id))"""
-    print (CreateTable)
-    cursor.execute (CreateTable)
-
-    # Insert some data
-    rows = [("Task 1", 0),
-        ("Task 2", 0),
-        ("Task 3", 1),
-        ("Task 4", 0),
-        ("Task 5", 1)]
-    cursor.executemany ("insert into todoitem (description, done) values(:1, :2)", rows)
-    print (cursor.rowcount, "Rows Inserted")
-
-    connection.commit ()
-
-    # Now query the rows back
-    for row in cursor.execute ('select description, done from todoitem'):
-        if row [1]:
-            print (row [0], "is done")
-        else:
-            print (row [0], "is NOT done")
+    CreateConnection ()
+    DROP_Table ()
+    CREATE_Table ()
+    INSERT_Table ()
+    SELECT_Table ()
 #endfunction
 
 #------------------------------------------
